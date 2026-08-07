@@ -23,7 +23,7 @@ df23_step1=pd.read_csv('opafy23nid.csv',usecols=['SENSPCAP','GLMIN','GLMAX'])
 
 print('21년도 결측치 표\n', df21_step1.isna().sum()) 
 print('22년도 결측치 표\n', df22_step1.isna().sum()) 
-print('23년도 결측치 표\n', df22_step1.isna().sum())
+print('23년도 결측치 표\n', df23_step1.isna().sum())
 
 print('21년도 SNESPCAP=0' , (df21_step1['SENSPCAP']==0).sum())
 print('22년도 SNESPCAP=0' , (df22_step1['SENSPCAP']==0).sum())
@@ -44,8 +44,8 @@ GLMAX       307
 dtype: int64
 23년도 결측치 표
  SENSPCAP      1
-GLMIN       307
-GLMAX       307
+GLMIN       368
+GLMAX       368
 dtype: int64
 21년도 SNESPCAP=0 3998
 22년도 SNESPCAP=0 4116
