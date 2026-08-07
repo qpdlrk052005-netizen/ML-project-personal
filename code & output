@@ -15,30 +15,39 @@ with open("columns25년도.txt", "w", encoding="utf-8") as f:
     for col in columns:
         f.write(col + "\n")
 
-# 결측치 확인 코드
+# 결측치 확인 / 보호관찰 수 세기
 
-df21_step1=pd.read_csv('opafy21nid.csv',usecols=['SENTTCAP','GLMIN','GLMAX'])
-df22_step1=pd.read_csv('opafy22nid.csv',usecols=['SENTTCAP','GLMIN','GLMAX'])
-df23_step1=pd.read_csv('opafy23nid.csv',usecols=['SENTTCAP','GLMIN','GLMAX'])
+df21_step1=pd.read_csv('opafy21nid.csv',usecols=['SENSPCAP','GLMIN','GLMAX'])
+df22_step1=pd.read_csv('opafy22nid.csv',usecols=['SENSPCAP','GLMIN','GLMAX'])
+df23_step1=pd.read_csv('opafy23nid.csv',usecols=['SENSPCAP','GLMIN','GLMAX'])
 
 print('21년도 결측치 표\n', df21_step1.isna().sum()) 
 print('22년도 결측치 표\n', df22_step1.isna().sum()) 
-print('23년도 결측치 표\n', df22_step1.isna().sum()) 
+print('23년도 결측치 표\n', df22_step1.isna().sum())
 
-# output
+print('21년도 SNESPCAP=0' , (df21_step1['SENSPCAP']==0).sum())
+print('22년도 SNESPCAP=0' , (df22_step1['SENSPCAP']==0).sum())
+print('23년도 SNESPCAP=0' , (df23_step1['SENSPCAP']==0).sum())
+
+print(df21_step1.shape[0],df22_step1.shape[0],df23_step1.shape[0])
+
+#output
 21년도 결측치 표
- SENTTCAP    4987
-GLMIN        698
-GLMAX        698
+ SENSPCAP      1
+GLMIN       698
+GLMAX       698
 dtype: int64
 22년도 결측치 표
- SENTTCAP    5074
-GLMIN        307
-GLMAX        307
+ SENSPCAP      1
+GLMIN       307
+GLMAX       307
 dtype: int64
 23년도 결측치 표
- SENTTCAP    5074
-GLMIN        307
-GLMAX        307
-
-#결측치 처리
+ SENSPCAP      1
+GLMIN       307
+GLMAX       307
+dtype: int64
+21년도 SNESPCAP=0 3998
+22년도 SNESPCAP=0 4116
+23년도 SNESPCAP=0 4134
+57287 64142 64124 
