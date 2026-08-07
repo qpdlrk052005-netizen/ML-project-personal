@@ -1,0 +1,44 @@
+# 년도별 열 이름 추출 코드
+import csv
+import os
+
+file_path = r"opafy25nid.csv"
+
+print("파일 존재 여부:", os.path.exists(file_path))
+print("파일 경로:", file_path)
+
+with open(file_path, "r", encoding="utf-8", newline="") as f:
+    reader = csv.reader(f)
+    columns = next(reader)
+
+with open("columns25년도.txt", "w", encoding="utf-8") as f:
+    for col in columns:
+        f.write(col + "\n")
+
+# 결측치 확인 코드
+
+df21_step1=pd.read_csv('opafy21nid.csv',usecols=['SENTTCAP','GLMIN','GLMAX'])
+df22_step1=pd.read_csv('opafy22nid.csv',usecols=['SENTTCAP','GLMIN','GLMAX'])
+df23_step1=pd.read_csv('opafy23nid.csv',usecols=['SENTTCAP','GLMIN','GLMAX'])
+
+print('21년도 결측치 표\n', df21_step1.isna().sum()) 
+print('22년도 결측치 표\n', df22_step1.isna().sum()) 
+print('23년도 결측치 표\n', df22_step1.isna().sum()) 
+
+# output
+21년도 결측치 표
+ SENTTCAP    4987
+GLMIN        698
+GLMAX        698
+dtype: int64
+22년도 결측치 표
+ SENTTCAP    5074
+GLMIN        307
+GLMAX        307
+dtype: int64
+23년도 결측치 표
+ SENTTCAP    5074
+GLMIN        307
+GLMAX        307
+
+#결측치 처리
