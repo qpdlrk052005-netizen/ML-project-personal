@@ -1,4 +1,4 @@
-'''## 년도별 열 이름 추출 코드
+## 년도별 열 이름 추출 코드
 import csv
 import os
 
@@ -13,7 +13,7 @@ with open(file_path, "r", encoding="utf-8", newline="") as f:
 
 with open("columns25년도.txt", "w", encoding="utf-8") as f:
     for col in columns:
-        f.write(col + "\n")'''
+        f.write(col + "\n")
 
 print("열 개수:", len(columns))
 print("저장 완료")
