@@ -51,3 +51,11 @@ dtype: int64
 22년도 SNESPCAP=0 4116
 23년도 SNESPCAP=0 4134
 57287 64142 64124 
+
+# 가이드라인 범위 내에 양형 포함 비율
+df_step1=pd.concat([df21_step1,df22_step1,df23_step1],axis=0)
+guideline_rate=((df_step1['SENSPCAP']<=df_step1['GLMAX'])&(df_step1['SENSPCAP']>=df_step1['GLMIN'])).mean()
+print(f'가이드라인 범위 내에 양형이 포함되는 비율 = {guideline_rate:.3%}')
+
+#output
+가이드라인 범위 내에 양형이 포함되는 비율 = 40.103%
