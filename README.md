@@ -36,5 +36,16 @@ setup - 21~25년도의 열 추출 -> 공통된 열만 사용한다.(연구의 �
 | 470개월 초과 유기징역     | **469.99** |
 | 진짜 결측/판정불가/해당없음   |        NaN |
    - 예측 보호관찰 -> 양형 보호관찰인 경우는 관찰되지 않음. -> 그렇다면 GLMIN이 0일 때 보호관찰도 가능하다.. 임을 포함하는가? -> 맞다. -> 그렇다면 GLMIN<=SENSPCAP<=GLMAX면 문제 없을 것.
-   - 새로운 변수를 지정했으니, 새로이 결측치 처리를 해야 함.
+   - 새로운 변수를 지정했으니, 새로이 결측치 처리를 해야 함. -> SENSPCAP은 결측치가 하나라서 drop했다. -> 300~600개의 GLMIN,GLMAX결측치는 무엇을 의미하는가? -> SOURCES 변수 해석
+   - |     값 | 공식 의미                                               | 우리 분석에서 해석                               |
+| ----: | --------------------------------------------------- | ---------------------------------------- |
+| **1** | **Information Represents Known Court Findings**     | 가장 확실한 법원 확정 guideline 정보                |
+| **2** | Alternate Docs / Some Info May be Missing from SOR  | 대체문서 이용. **FY2008부터 폐지**                 |
+| **3** | PSR is Coded — Insufficient Information in SOR      | SOR 정보 부족 → **PSR로 계산**                  |
+| **5** | PSR is Coded — No SOR Present                       | SOR 없음 → **PSR로 계산**                     |
+| **6** | **18 U.S.C. §924(c) only**                          | 일반 guideline application 정보 없음, 법정 규정 적용 |
+| **7** | **18 U.S.C. §1028A only**                           | 일반 guideline application 정보 없음, 법정 규정 적용 |
+| **8** | **No Analogous Guidelines**                         | 적용 가능한 guideline 자체가 없음                  |
+| **9** | **PSR Waived, Missing, or Multiple Offense Levels** | PSR 부재/면제 또는 단일 offense level 확정 불가      |
+
    - GLMIN<=SENSCAP<=GLMAX의 비율 즉. 실제 선고가 가이드라인 범위 내에 포괄되는 비율을 알아보자.
