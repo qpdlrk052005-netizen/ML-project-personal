@@ -15,49 +15,13 @@ with open("columns25년도.txt", "w", encoding="utf-8") as f:
     for col in columns:
         f.write(col + "\n")
 
-# 결측치 확인 / 보호관찰 수 세기
-
-df21_step1=pd.read_csv('opafy21nid.csv',usecols=['SENSPCAP','GLMIN','GLMAX'])
-df22_step1=pd.read_csv('opafy22nid.csv',usecols=['SENSPCAP','GLMIN','GLMAX'])
-df23_step1=pd.read_csv('opafy23nid.csv',usecols=['SENSPCAP','GLMIN','GLMAX'])
-
-print('21년도 결측치 표\n', df21_step1.isna().sum()) 
-print('22년도 결측치 표\n', df22_step1.isna().sum()) 
-print('23년도 결측치 표\n', df23_step1.isna().sum())
-
-print('21년도 SNESPCAP=0' , (df21_step1['SENSPCAP']==0).sum())
-print('22년도 SNESPCAP=0' , (df22_step1['SENSPCAP']==0).sum())
-print('23년도 SNESPCAP=0' , (df23_step1['SENSPCAP']==0).sum())
-
-print(df21_step1.shape[0],df22_step1.shape[0],df23_step1.shape[0])
-
-# output
-21년도 결측치 표
- SENSPCAP      1
-GLMIN       698
-GLMAX       698
-dtype: int64
-22년도 결측치 표
- SENSPCAP      1
-GLMIN       307
-GLMAX       307
-dtype: int64
-23년도 결측치 표
- SENSPCAP      1
-GLMIN       368
-GLMAX       368
-dtype: int64
-21년도 SNESPCAP=0 3998
-22년도 SNESPCAP=0 4116
-23년도 SNESPCAP=0 4134
-57287 64142 64124 
 
 # 결측치 처리 -> SENSPCAP은 결측치가 1개씩이니까 지웠다.
 df21_step1=pd.read_csv('opafy21nid.csv',usecols=['SENSPCAP','GLMIN','GLMAX','SOURCES']).dropna(subset=['SENSPCAP'])
 df22_step1=pd.read_csv('opafy22nid.csv',usecols=['SENSPCAP','GLMIN','GLMAX','SOURCES']).dropna(subset=['SENSPCAP'])
 df23_step1=pd.read_csv('opafy23nid.csv',usecols=['SENSPCAP','GLMIN','GLMAX','SOURCES']).dropna(subset=['SENSPCAP'])
-
 df_step1=pd.concat([df21_step1,df22_step1,df23_step1],axis=0)
+
 # SOURCES가 들어왔으니 새로운 결측치 확인
 print(
     df_step1.isna().sum()
@@ -69,14 +33,6 @@ SOURCES        0
 GLMIN       1373
 GLMAX       1373
 dtype: int64
-
-# 가이드라인 범위 내에 양형 포함 비율(결측치 처리 전)
-df_step1=pd.concat([df21_step1,df22_step1,df23_step1],axis=0)
-guideline_rate=((df_step1['SENSPCAP']<=df_step1['GLMAX'])&(df_step1['SENSPCAP']>=df_step1['GLMIN'])).mean()
-print(f'가이드라인 범위 내에 양형이 포함되는 비율 = {guideline_rate:.3%}')
-
-# output
-가이드라인 범위 내에 양형이 포함되는 비율 = 40.103%
 
 # SOURCES 변수가 6,7,8,9인 경우만 결측 처리가 되었는가?
 missing=df_step1[df_step1.isna().any(axis=1)]
@@ -92,5 +48,3 @@ print('총 개수 = ',missing['SOURCES'].value_counts().sum())
 6    324
 Name: count, dtype: int64
 총 개수 =  1373
-
-#
