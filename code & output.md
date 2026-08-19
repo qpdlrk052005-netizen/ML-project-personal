@@ -37,13 +37,13 @@ col1=[
 ]
 
 df1=pd.read_csv('opafy21nid.csv',usecols=col1)
-df2=pd.read_csv('opafy21nid.csv',usecols=col1)
-df3=pd.read_csv('opafy21nid.csv',usecols=col1)
+df2=pd.read_csv('opafy22nid.csv',usecols=col1)
+df3=pd.read_csv('opafy23nid.csv',usecols=col1)
 
 df=pd.concat([df1,df2,df3],axis=0)
 df.to_csv('회귀및분류모델.csv', index=False)
 
-# 결측치 제거 및 반응변수 'Class' 생성
+# 결측치 확인 및 반응변수 'Class' 생성
 
 df=pd.read_csv('회귀및분류모델.csv')
 df=df[df['SOURCES']==1]
@@ -86,24 +86,20 @@ TOTPRISN    0
 dtype: int64
 
 Class
-1    151791
-2      9168
-3       198
-0       177
+1    165461
+2      9712
+0       349
+3       185
 Name: count, dtype: int64
 
-| SENTIMP | Class 0 | Class 1 | Class 2 | Class 3 | All |
+| SENTIMP | Class 0<br>(Life) | Class 1<br>(기간형) | Class 2<br>(Probation Only) | Class 3<br>(Fine Only) | All |
 |---:|---:|---:|---:|---:|---:|
-| 0 | 0 | 0 | 0 | 198 | 198 |
-| 1 | 177 | 143,967 | 0 | 0 | 144,144 |
-| 2 | 0 | 4,830 | 0 | 0 | 4,830 |
-| 3 | 0 | 2,994 | 0 | 0 | 2,994 |
-| 4 | 0 | 0 | 9,168 | 0 | 9,168 |
-| **All** | **177** | **151,791** | **9,168** | **198** | **161,334** |
+| 0 | 0 | 0 | 0 | 185 | 185 |
+| 1 | 347 | 157,596 | 0 | 0 | 157,943 |
+| 2 | 2 | 5,158 | 0 | 0 | 5,160 |
+| 3 | 0 | 2,707 | 0 | 0 | 2,707 |
+| 4 | 0 | 0 | 9,712 | 0 | 9,712 |
+| **All** | **349** | **165,461** | **9,712** | **185** | **175,707** |
 
 # train / test 데이터 분리 및 다중 분류 모델 평가
 
-X=df.drop(['Class'])
-y=df['Class']
-
-X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.2,stratify=y,random_state=42)
