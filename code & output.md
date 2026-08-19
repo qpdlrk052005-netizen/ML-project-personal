@@ -44,12 +44,13 @@ df=pd.concat([df1,df2,df3],axis=0)
 df.to_csv('회귀및분류모델.csv', index=False)
 
 # 결측치 제거 및 반응변수 'Class' 생성
+
 df=pd.read_csv('회귀및분류모델.csv')
 df=df[df['SOURCES']==1]
 print(
     df.isna().sum()
 )
-df.dropna(subset=['SENSPLT0'],inplace=True)
+'''df.dropna(subset=['SENSPLT0'],inplace=True)''' -> 없어도 Class를 구분할 수 있으므로, 제거할 필요 없음.    
 
 df['Class'] = np.select(
     [
@@ -72,6 +73,7 @@ print(
 print(pd.crosstab(df['SENTIMP'], df['Class'], margins=True, dropna=False))
 
 # 결과
+
 ZONE        0
 SENSPLT0    3
 ALTDUM      0
@@ -98,3 +100,10 @@ Name: count, dtype: int64
 | 3 | 0 | 2,994 | 0 | 0 | 2,994 |
 | 4 | 0 | 0 | 9,168 | 0 | 9,168 |
 | **All** | **177** | **151,791** | **9,168** | **198** | **161,334** |
+
+# train / test 데이터 분리 및 다중 분류 모델 평가
+
+X=df.drop(['Class'])
+y=df['Class']
+
+X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.2,stratify=y,random_state=42)
