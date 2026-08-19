@@ -101,5 +101,11 @@ Name: count, dtype: int64
 | 4 | 0 | 0 | 9,712 | 0 | 9,712 |
 | **All** | **349** | **165,461** | **9,712** | **185** | **175,707** |
 
-# train / test 데이터 분리 및 다중 분류 모델 평가
+# 불일치 2건 분석
+print(df[(df['Class']==0) & (df['SENTIMP']==2)])
+
+# 결과
+       ZONE  SENSPLT0  ALTDUM  ALTMO  SENTIMP  SOURCES   GLMIN   GLMAX  TOTPRISN  Class
+156926    D     470.0       1      0        2        1   300.0   327.0      9996      0
+169563    D     470.0       1      0        2        1  9996.0  9996.0      9996      0
 
