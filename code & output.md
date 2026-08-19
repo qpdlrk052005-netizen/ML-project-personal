@@ -105,7 +105,7 @@ Name: count, dtype: int64
 print(df[(df['Class']==0) & (df['SENTIMP']==2)])
 
 # 결과
-       ZONE  SENSPLT0  ALTDUM  ALTMO  SENTIMP  SOURCES   GLMIN   GLMAX  TOTPRISN  Class
-156926    D     470.0       1      0        2        1   300.0   327.0      9996      0
-169563    D     470.0       1      0        2        1  9996.0  9996.0      9996      0
-
+| Index | ZONE | SENSPLT0 | ALTDUM | ALTMO | SENTIMP | SOURCES | GLMIN | GLMAX | TOTPRISN | Class |
+|---:|:---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 156926 | D | 470.0 | 1 | 0 | 2 | 1 | 300.0 | 327.0 | 9996 | 0 |
+| 169563 | D | 470.0 | 1 | 0 | 2 | 1 | 9996.0 | 9996.0 | 9996 | 0 |
