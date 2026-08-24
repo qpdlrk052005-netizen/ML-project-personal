@@ -109,3 +109,140 @@ print(df[(df['Class']==0) & (df['SENTIMP']==2)])
 |---:|:---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | 156926 | D | 470.0 | 1 | 0 | 2 | 1 | 300.0 | 327.0 | 9996 | 0 |
 | 169563 | D | 470.0 | 1 | 0 | 2 | 1 | 9996.0 | 9996.0 | 9996 | 0 |
+
+# 파생변수를 만드는 함수
+X=df[['GLMIN','GLMAX','ZONE']]
+y=df['Class']
+
+def add_GL_features(X) :
+    result=X.copy()
+    result['GLMIN_MONTH'] = result['GLMIN'].mask(result['GLMIN'].eq(9996),0)
+    result['GLMAX_MONTH'] = result['GLMAX'].mask(result['GLMAX'].eq(9996),0)
+    result['GLMIN_ZERO'] = result['GLMIN'].eq(0).astype('int')
+    life=result['GLMIN'].eq(9996)
+    finite_to_life=result['GLMAX'].eq(9996)
+    result['GL_RANGE_TYPE'] = np.select([life & finite_to_life , ~life & finite_to_life],
+                                        ['life','finite_to_life']
+                                        ,default='finite')
+    return result
+
+# CV - 5 FOLD (StratifiedKFold) 설정
+from sklearn.model_selection import StratifiedKFold
+cv = StratifiedKFold(n_splits=5,shuffle=True,random_state=42)
+
+# baseline A 전처리기 생성
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+preprocessor_A = ColumnTransformer(
+    transformers=[
+        ('pass','passthrough',['GLMIN_MONTH','GLMAX_MONTH','GLMIN_ZERO']),
+        ('Encoder',OneHotEncoder(sparse_output=False),['GL_RANGE_TYPE'])
+    ],
+    remainder='drop')
+
+# dummy 모델 생성 및 평가
+from sklearn.metrics import confusion_matrix,classification_report
+from sklearn.dummy import DummyClassifier
+from sklearn.model_selection import cross_val_predict
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import FunctionTransformer
+dummy_pipeline = Pipeline([('add',FunctionTransformer(add_GL_features)),
+                        ('prepro',preprocessor_A),
+                        ('model',DummyClassifier(strategy='most_frequent'))])
+y_pred = cross_val_predict(dummy_pipeline,X,y,cv=cv)
+print('혼동행렬')
+print(confusion_matrix(y,y_pred))
+print('결과')
+print(classification_report(y,y_pred))
+
+# 평가 결과
+혼동행렬
+| 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
+|---|---:|---:|---:|---:|---:|
+| **Class 0** | 0 | 349 | 0 | 0 | 349 |
+| **Class 1** | 0 | 165,461 | 0 | 0 | 165,461 |
+| **Class 2** | 0 | 9,712 | 0 | 0 | 9,712 |
+| **Class 3** | 0 | 185 | 0 | 0 | 185 |
+| **전체** | 0 | 175,707 | 0 | 0 | 175,707 |
+
+결과
+| 구분 | Precision | Recall | F1-score | Support |
+|---|---:|---:|---:|---:|
+| **Class 0: 무기징역·사형** | 0.00 | 0.00 | 0.00 | 349 |
+| **Class 1: 기간형** | 0.94 | 1.00 | 0.97 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0.00 | 0.00 | 0.00 | 9,712 |
+| **Class 3: 벌금 Only** | 0.00 | 0.00 | 0.00 | 185 |
+| **Accuracy** | — | — | **0.94** | 175,707 |
+| **Macro average** | 0.24 | 0.25 | 0.24 | 175,707 |
+| **Weighted average** | 0.89 | 0.94 | 0.91 | 175,707 |
+
+# basline A 모델 - Logistic ( class_weight='balanced' )
+Logisticbalanced=LogisticRegression(class_weight='balanced',max_iter=10000)
+modelA1=Pipeline([
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('logistic',Logisticbalanced)
+])
+
+y_pred=cross_val_predict(modelA1,X,y,cv=cv)
+print('혼동행렬')
+print(confusion_matrix(y,y_pred))
+print('결과')
+print(classification_report(y,y_pred))
+
+# 평가 결과
+혼동행렬
+| 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
+|---|---:|---:|---:|---:|---:|
+| **Class 0: 무기징역·사형** | **328** | 21 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 3,210 | **98,392** | 53,062 | 10,797 | 165,461 |
+| **Class 2: 보호관찰 Only** | 1 | 1,547 | **5,347** | 2,817 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 9 | 25 | **151** | 185 |
+| **전체 예측 건수** | 3,539 | 99,969 | 58,434 | 13,765 | 175,707 |
+
+결과
+| 구분 | Precision | Recall | F1-score | Support |
+|---|---:|---:|---:|---:|
+| **Class 0: 무기징역·사형** | 0.09 | 0.94 | 0.17 | 349 |
+| **Class 1: 기간형** | 0.98 | 0.59 | 0.74 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0.09 | 0.55 | 0.16 | 9,712 |
+| **Class 3: 벌금 Only** | 0.01 | 0.82 | 0.02 | 185 |
+| **Accuracy** | — | — | **0.59** | 175,707 |
+| **Macro average** | 0.29 | 0.73 | 0.27 | 175,707 |
+| **Weighted average** | 0.93 | 0.59 | 0.71 | 175,707 |
+
+# baseline A 모델 - Logistic ( class_weight=None )
+Logistic=LogisticRegression(max_iter=10000)
+modelA2=Pipeline([
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('logistic',Logistic)
+])
+
+y_pred=cross_val_predict(modelA2,X,y,cv=cv)
+print('혼동행렬')
+print(confusion_matrix(y,y_pred))
+print('결과')
+print(classification_report(y,y_pred))
+
+# 평과 결과
+혼동행렬
+| 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
+|---|---:|---:|---:|---:|---:|
+| **Class 0: 무기징역·사형** | 0 | 349 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 0 | **165,461** | 0 | 0 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 9,712 | 0 | 0 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 185 | 0 | 0 | 185 |
+| **전체 예측 건수** | 0 | 175,707 | 0 | 0 | 175,707 |
+
+결과
+| 구분 | Precision | Recall | F1-score | Support |
+|---|---:|---:|---:|---:|
+| **Class 0: 무기징역·사형** | 0.00 | 0.00 | 0.00 | 349 |
+| **Class 1: 기간형** | 0.94 | 1.00 | 0.97 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0.00 | 0.00 | 0.00 | 9,712 |
+| **Class 3: 벌금 Only** | 0.00 | 0.00 | 0.00 | 185 |
+| **Accuracy** | — | — | **0.94** | 175,707 |
+| **Macro average** | 0.24 | 0.25 | 0.24 | 175,707 |
+| **Weighted average** | 0.89 | 0.94 | 0.91 | 175,707 |
+
