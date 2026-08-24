@@ -246,3 +246,77 @@ print(classification_report(y,y_pred))
 | **Macro average** | 0.24 | 0.25 | 0.24 | 175,707 |
 | **Weighted average** | 0.89 | 0.94 | 0.91 | 175,707 |
 
+# baseline A 모델 - Decision Tree ( class_weight='balanced' )
+from sklearn.tree import DecisionTreeClassifier
+Decision2 = DecisionTreeClassifier(class_weight='balanced',criterion='gini',random_state=42)
+modelA4=Pipeline([
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('tree',Decision2)
+])
+
+y_pred=cross_val_predict(modelA4,X,y,cv=cv)
+print('혼동행렬')
+print(confusion_matrix(y,y_pred))
+print('결과')
+print(classification_report(y,y_pred,zero_division=0))
+
+# 평가 결과
+혼동행렬
+| 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
+|---|---:|---:|---:|---:|---:|
+| **Class 0: 무기징역·사형** | **332** | 17 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 4,615 | **117,578** | 31,161 | 12,107 | 165,461 |
+| **Class 2: 보호관찰 Only** | 1 | 2,557 | **4,281** | 2,873 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 14 | 20 | **151** | 185 |
+| **전체 예측 건수** | 4,948 | 120,166 | 35,462 | 15,131 | 175,707 |
+
+결과
+| 구분 | Precision | Recall | F1-score | Support |
+|---|---:|---:|---:|---:|
+| **Class 0: 무기징역·사형** | 0.07 | 0.95 | 0.13 | 349 |
+| **Class 1: 기간형** | 0.98 | 0.71 | 0.82 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0.12 | 0.44 | 0.19 | 9,712 |
+| **Class 3: 벌금 Only** | 0.01 | 0.82 | 0.02 | 185 |
+| **Accuracy** | — | — | **0.70** | 175,707 |
+| **Macro average** | 0.29 | 0.73 | 0.29 | 175,707 |
+| **Weighted average** | 0.93 | 0.70 | 0.79 | 175,707 |
+
+# baseline A 모델 - Decision Tree ( class_weight=None )
+from sklearn.tree import DecisionTreeClassifier
+Decision1 = DecisionTreeClassifier(criterion='gini',random_state=42)
+modelA3=Pipeline([
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('tree',Decision1)
+])
+
+y_pred=cross_val_predict(modelA3,X,y,cv=cv)
+print('혼동행렬')
+print(confusion_matrix(y,y_pred))
+print('결과')
+print(classification_report(y,y_pred,zero_division=0))
+
+# 평가 결과
+혼동행렬
+| 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
+|---|---:|---:|---:|---:|---:|
+| **Class 0: 무기징역·사형** | 0 | 349 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 0 | **165,461** | 0 | 0 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 9,712 | 0 | 0 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 185 | 0 | 0 | 185 |
+| **전체 예측 건수** | 0 | 175,707 | 0 | 0 | 175,707 |
+
+결과
+| 구분 | Precision | Recall | F1-score | Support |
+|---|---:|---:|---:|---:|
+| **Class 0: 무기징역·사형** | 0.00 | 0.00 | 0.00 | 349 |
+| **Class 1: 기간형** | 0.94 | 1.00 | 0.97 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0.00 | 0.00 | 0.00 | 9,712 |
+| **Class 3: 벌금 Only** | 0.00 | 0.00 | 0.00 | 185 |
+| **Accuracy** | — | — | **0.94** | 175,707 |
+| **Macro average** | 0.24 | 0.25 | 0.24 | 175,707 |
+| **Weighted average** | 0.89 | 0.94 | 0.91 | 175,707 |
+
+
+
