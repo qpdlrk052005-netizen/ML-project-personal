@@ -318,5 +318,153 @@ print(classification_report(y,y_pred,zero_division=0))
 | **Macro average** | 0.24 | 0.25 | 0.24 | 175,707 |
 | **Weighted average** | 0.89 | 0.94 | 0.91 | 175,707 |
 
+# baseline A 모델 - Randomforest ( class_weight=None )
+from sklearn.ensemble import (RandomForestClassifier,HistGradientBoostingClassifier)
+RandomForestModel=RandomForestClassifier(n_estimators=300,class_weight=None,random_state=42,n_jobs=-1)
 
+modelA_RF=Pipeline([
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('randomforest',RandomForestModel)
+])
+
+y_pred=cross_val_predict(modelA_RF,X,y,cv=cv)
+
+print('혼동행렬')
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
+print('결과')
+print(classification_report(y,y_pred,labels=[0,1,2,3],digits=4,zero_division=0))
+
+# 평가 결과
+혼동행렬
+| 실제 클래스 / 예측 클래스 | 0 | 1 | 2 | 3 |
+|---:|---:|---:|---:|---:|
+| **0** | 0 | 349 | 0 | 0 |
+| **1** | 0 | 165450 | 11 | 0 |
+| **2** | 0 | 9703 | 9 | 0 |
+| **3** | 0 | 185 | 0 | 0 |
+
+결과
+| 클래스 | Precision | Recall | F1-score | Support |
+|---:|---:|---:|---:|---:|
+| **0** | 0.0000 | 0.0000 | 0.0000 | 349 |
+| **1** | 0.9417 | 0.9999 | 0.9700 | 165461 |
+| **2** | 0.4500 | 0.0009 | 0.0018 | 9712 |
+| **3** | 0.0000 | 0.0000 | 0.0000 | 185 |
+| **Accuracy** | - | - | **0.9417** | 175707 |
+| **Macro avg** | 0.3479 | 0.2502 | 0.2430 | 175707 |
+| **Weighted avg** | 0.9117 | 0.9417 | 0.9135 | 175707 |
+
+
+# baseline A 모델 - Randomforest ( class_weight='balanced_subsample')
+
+RandomForestBalanced=RandomForestClassifier(n_estimators=300,class_weight='balanced_subsample',random_state=42,n_jobs=-1)
+
+modelA_RF_balanced=Pipeline([
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('randomforest',RandomForestBalanced)
+])
+
+y_pred=cross_val_predict(modelA_RF_balanced,X,y,cv=cv)
+
+print('혼동행렬')
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
+print('결과')
+print(classification_report(y,y_pred,labels=[0,1,2,3],digits=4,zero_division=0))
+
+# 평가 결과
+혼동행렬
+| 실제 클래스 / 예측 클래스 | 0 | 1 | 2 | 3 |
+|---:|---:|---:|---:|---:|
+| **0** | 328 | 21 | 0 | 0 |
+| **1** | 3103 | 119783 | 31455 | 11120 |
+| **2** | 0 | 2570 | 4316 | 2826 |
+| **3** | 0 | 14 | 20 | 151 |
+
+결과
+| 클래스 | Precision | Recall | F1-score | Support |
+|---:|---:|---:|---:|---:|
+| **0** | 0.0956 | 0.9398 | 0.1735 | 349 |
+| **1** | 0.9787 | 0.7239 | 0.8323 | 165461 |
+| **2** | 0.1206 | 0.4444 | 0.1897 | 9712 |
+| **3** | 0.0107 | 0.8162 | 0.0211 | 185 |
+| **Accuracy** | - | - | **0.7090** | 175707 |
+| **Macro avg** | 0.3014 | 0.7311 | 0.3042 | 175707 |
+| **Weighted avg** | 0.9285 | 0.7090 | 0.7946 | 175707 |
+
+# baseline A 모델 - HistGradientBoosting ( class_weight=None )
+
+HistGradientModel=HistGradientBoostingClassifier(class_weight=None,learning_rate=0.1,max_iter=100,random_state=42)
+
+modelA_HGB=Pipeline([
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('histgradient',HistGradientModel)
+])
+
+y_pred=cross_val_predict(modelA_HGB,X,y,cv=cv)
+
+print('혼동행렬')
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
+print('결과')
+print(classification_report(y,y_pred,labels=[0,1,2,3],digits=4,zero_division=0))
+
+# 평가 
+혼동행렬
+| 실제 클래스 / 예측 클래스 | 0 | 1 | 2 | 3 |
+|---:|---:|---:|---:|---:|
+| **0** | 188 | 161 | 0 | 0 |
+| **1** | 760 | 164676 | 25 | 0 |
+| **2** | 0 | 9712 | 0 | 0 |
+| **3** | 0 | 185 | 0 | 0 |
+
+결과
+| 클래스 | Precision | Recall | F1-score | Support |
+|---:|---:|---:|---:|---:|
+| **0** | 0.1983 | 0.5387 | 0.2899 | 349 |
+| **1** | 0.9424 | 0.9953 | 0.9681 | 165461 |
+| **2** | 0.0000 | 0.0000 | 0.0000 | 9712 |
+| **3** | 0.0000 | 0.0000 | 0.0000 | 185 |
+| **Accuracy** | - | - | **0.9383** | 175707 |
+| **Macro avg** | 0.2852 | 0.3835 | 0.3145 | 175707 |
+| **Weighted avg** | 0.8879 | 0.9383 | 0.9122 | 175707 |
+
+
+# baseline A 모델 - HistGradientBoosting ( class_weight='balanced' )
+
+HistGradientBalanced=HistGradientBoostingClassifier(class_weight='balanced',learning_rate=0.1,max_iter=100,random_state=42)
+
+modelA_HGB_balanced=Pipeline([
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('histgradient',HistGradientBalanced)
+])
+
+y_pred=cross_val_predict(modelA_HGB_balanced,X,y,cv=cv)
+
+print('혼동행렬')
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
+print('결과')
+print(classification_report(y,y_pred,labels=[0,1,2,3],digits=4,zero_division=0))
+
+# 평가 결과
+혼동행렬
+| 실제 클래스 / 예측 클래스 | 0 | 1 | 2 | 3 |
+|---:|---:|---:|---:|---:|
+| **0** | 333 | 16 | 0 | 0 |
+| **1** | 5772 | 116483 | 31087 | 12119 |
+| **2** | 1 | 2565 | 4273 | 2873 |
+| **3** | 0 | 14 | 20 | 151 |
+
+결과
+| 클래스 | Precision | Recall | F1-score | Support |
+|---:|---:|---:|---:|---:|
+| **0** | 0.0545 | 0.9542 | 0.1032 | 349 |
+| **1** | 0.9782 | 0.7040 | 0.8187 | 165461 |
+| **2** | 0.1208 | 0.4400 | 0.1895 | 9712 |
+| **3** | 0.0100 | 0.8162 | 0.0197 | 185 |
+| **Accuracy** | - | - | **0.6900** | 175707 |
+| **Macro avg** | 0.2909 | 0.7286 | 0.2828 | 175707 |
+| **Weighted avg** | 0.9280 | 0.6900 | 0.7817 | 175707 |
 
