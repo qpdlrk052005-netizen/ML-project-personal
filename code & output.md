@@ -45,29 +45,26 @@ with open("columns25년도.txt", "w", encoding="utf-8") as f:
 ```python
 # 데이터 불러오기
 
-col1=[
-    # 가이드라인 관련 변수
+col=[
     'ZONE',
     'GLMIN',
-    'GLMAX', 
-    # 연구 범위 한정 변수
+    'GLMAX',
+    'XMINSOR',
+    'XMAXSOR',
+    'XFOLSOR',
+    'XCRHISSR',
+    'GDLINEHI',
+    'NOCOMP',
+    'AMENDYR',
     'SOURCES',
-    # 실제로 부과된 형벌의 형태
-    'SENTIMP', # 0 이면 벌금만, 4면 보호관찰만
-    # 대체구금 개월 수
-    'ALTMO', # 97이면 결측치.
-    'ALTDUM', # 대체구금 선고 여부 0- 없음 / 1- 있음
-    # 총 선고 기간
-    'SENSPLT0', # 자유 제한 기간. 470이면 종신형. 
-    # 무기징역/사형 구분
-    'TOTPRISN' # 9996이면 종신형, 9997은 결측치, 9998은 사형
+    'SENTIMP',
+    'TOTPRISN'
 ]
+df1=pd.read_csv('opafy21nid.csv', usecols=col, low_memory=False)
+df2=pd.read_csv('opafy22nid.csv', usecols=col, low_memory=False)
+df3=pd.read_csv('opafy23nid.csv', usecols=col, low_memory=False)
 
-df1=pd.read_csv('opafy21nid.csv',usecols=col1)
-df2=pd.read_csv('opafy22nid.csv',usecols=col1)
-df3=pd.read_csv('opafy23nid.csv',usecols=col1)
-
-df=pd.concat([df1,df2,df3],axis=0)
+df=pd.concat([df1,df2,df3], axis=0, ignore_index=True)
 df.to_csv('회귀및분류모델.csv', index=False)
 ```
 
@@ -84,7 +81,6 @@ print(
 )
 
 # SENSPLT0가 결측이어도 Class를 구분할 수 있으므로 제거하지 않음
-# df.dropna(subset=['SENSPLT0'],inplace=True)
 
 df['Class'] = np.select(
     [
