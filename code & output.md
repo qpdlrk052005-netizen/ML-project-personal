@@ -1,12 +1,11 @@
 # 형벌 유형 분류: Baseline A·B 코드 및 출력
 
-> **문서 상태:** Baseline A·B 중간 분석 기록  
+> **문서 상태:** Baseline A·B 통합 분석 기록  
 > **분석 자료:** USSC FY2021–FY2023, `SOURCES == 1`  
 > **평가 방법:** 5-fold Stratified Cross-Validation의 Out-of-Fold 예측  
-> **Baseline A 입력:** `GLMIN`, `GLMAX` 및 이들로부터 생성한 파생변수  
-> **Baseline B 추가 입력:** `ZONE`
+> **주요 입력:** Baseline A는 `GLMIN`, `GLMAX`; Baseline B는 `GLMIN`, `GLMAX`, `ZONE`
 
-이 문서는 데이터 구성, 반응변수 생성, 피처 엔지니어링, 전처리 파이프라인 및 Baseline A·B 분류모형의 실행 코드와 출력을 순서대로 기록한다. Baseline A는 `GLMIN`과 `GLMAX`에서 생성한 변수만 사용하고, Baseline B는 동일한 변수에 `ZONE`을 추가한다. 기존 Python 코드는 변경하지 않고 문서 구조와 출력 형식만 정리하였다.
+이 문서는 데이터 구성, 반응변수 생성, 피처 엔지니어링, 전처리 파이프라인과 Baseline A·B 분류모형의 실행 코드 및 출력을 순서대로 기록한다. 기존 Python 코드와 실행 결과는 변경하지 않고 문서 구조와 출력 형식만 통합하였다.
 
 ## 목차
 
@@ -14,7 +13,7 @@
 2. [피처 엔지니어링 및 검증 설정](#2-피처-엔지니어링-및-검증-설정)
 3. [Baseline A 모형 평가](#3-baseline-a-모형-평가)
 4. [Baseline B 모형 평가](#4-baseline-b-모형-평가)
-5. [Baseline A·B 중간 성능 비교](#5-baseline-ab-중간-성능-비교)
+5. [Baseline A·B 성능 비교](#5-baseline-ab-성능-비교)
 
 ---
 
@@ -61,7 +60,7 @@ col1=[
     # 총 선고 기간
     'SENSPLT0', # 자유 제한 기간. 470이면 종신형. 
     # 무기징역/사형 구분
-    'TOTPRISN' # 9996이면 종신형, 9997은 결측치 , 9998은 사형 **이걸 종신형의 지표로 사용해야 함.
+    'TOTPRISN' # 9996이면 종신형, 9997은 결측치, 9998은 사형
 ]
 
 df1=pd.read_csv('opafy21nid.csv',usecols=col1)
@@ -84,8 +83,8 @@ print(
     df.isna().sum()
 )
 
-'''df.dropna(subset=['SENSPLT0'],inplace=True)'''
-# 없어도 Class를 구분할 수 있으므로 제거할 필요 없음.
+# SENSPLT0가 결측이어도 Class를 구분할 수 있으므로 제거하지 않음
+# df.dropna(subset=['SENSPLT0'],inplace=True)
 
 df['Class'] = np.select(
     [
@@ -150,12 +149,7 @@ Name: count, dtype: int64
 
 ```python
 # 불일치 2건 분석
-print(
-    df[
-        (df['Class']==0) &
-        (df['SENTIMP']==2)
-    ]
-)
+print(df[(df['Class']==0) & (df['SENTIMP']==2)])
 ```
 
 #### 실행 결과
@@ -177,7 +171,7 @@ print(
 X=df[['GLMIN','GLMAX','ZONE']]
 y=df['Class']
 
-def add_GL_features(X) :
+def add_GL_features(X):
     result=X.copy()
 
     result['GLMIN_MONTH'] = result['GLMIN'].mask(
@@ -217,7 +211,7 @@ def add_GL_features(X) :
 
 from sklearn.model_selection import StratifiedKFold
 
-cv=StratifiedKFold(
+cv = StratifiedKFold(
     n_splits=5,
     shuffle=True,
     random_state=42
@@ -237,17 +231,11 @@ preprocessor_A = ColumnTransformer(
         (
             'pass',
             'passthrough',
-            [
-                'GLMIN_MONTH',
-                'GLMAX_MONTH',
-                'GLMIN_ZERO'
-            ]
+            ['GLMIN_MONTH','GLMAX_MONTH','GLMIN_ZERO']
         ),
         (
             'Encoder',
-            OneHotEncoder(
-                sparse_output=False
-            ),
+            OneHotEncoder(sparse_output=False),
             ['GL_RANGE_TYPE']
         )
     ],
@@ -273,25 +261,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
 
 dummy_pipeline = Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_A
-    ),
-    (
-        'model',
-        DummyClassifier(
-            strategy='most_frequent'
-        )
-    )
+    ('add',FunctionTransformer(add_GL_features)),
+    ('prepro',preprocessor_A),
+    ('model',DummyClassifier(strategy='most_frequent'))
 ])
 
-y_pred=cross_val_predict(
+y_pred = cross_val_predict(
     dummy_pipeline,
     X,
     y,
@@ -299,17 +274,8 @@ y_pred=cross_val_predict(
 )
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -327,74 +293,46 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 0 | 349 | 0 | 0 | 349 |
-| **Class 1** | 0 | 165,461 | 0 | 0 | 165,461 |
-| **Class 2** | 0 | 9,712 | 0 | 0 | 9,712 |
-| **Class 3** | 0 | 185 | 0 | 0 | 185 |
+| **Class 0: 무기징역·사형** | 0 | 349 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 0 | 165,461 | 0 | 0 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 9,712 | 0 | 0 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 185 | 0 | 0 | 185 |
 | **전체** | 0 | 175,707 | 0 | 0 | 175,707 |
 
 ##### 분류 보고서
 
 | 구분 | Precision | Recall | F1-score | Support |
 |---|---:|---:|---:|---:|
-| **Class 0: 무기징역·사형** | 0.0000 | 0.0000 | 0.0000 | 349 |
-| **Class 1: 기간형** | 0.9417 | 1.0000 | 0.9700 | 165,461 |
-| **Class 2: 보호관찰 Only** | 0.0000 | 0.0000 | 0.0000 | 9,712 |
-| **Class 3: 벌금 Only** | 0.0000 | 0.0000 | 0.0000 | 185 |
-| **Accuracy** | — | — | **0.9417** | 175,707 |
-| **Macro average** | 0.2354 | 0.2500 | 0.2425 | 175,707 |
-| **Weighted average** | 0.8868 | 0.9417 | 0.9134 | 175,707 |
+| **Class 0: 무기징역·사형** | 0.00 | 0.00 | 0.00 | 349 |
+| **Class 1: 기간형** | 0.94 | 1.00 | 0.97 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0.00 | 0.00 | 0.00 | 9,712 |
+| **Class 3: 벌금 Only** | 0.00 | 0.00 | 0.00 | 185 |
+| **Accuracy** | — | — | **0.94** | 175,707 |
+| **Macro average** | 0.24 | 0.25 | 0.24 | 175,707 |
+| **Weighted average** | 0.89 | 0.94 | 0.91 | 175,707 |
 
 ---
 
-### 3.2 Logistic Regression — None
+### 3.2 Logistic Regression — None (`class_weight=None`)
 
 #### 실행 코드
 
 ```python
 # baseline A 모델 - Logistic ( class_weight=None )
 
-Logistic=LogisticRegression(
-    max_iter=10000
-)
+Logistic=LogisticRegression(max_iter=10000)
 
 modelA2=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_A
-    ),
-    (
-        'logistic',
-        Logistic
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('logistic',Logistic)
 ])
 
-y_pred=cross_val_predict(
-    modelA2,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelA2,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -412,27 +350,27 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 0 | 349 | 0 | 0 | 349 |
-| **Class 1** | 0 | 165,461 | 0 | 0 | 165,461 |
-| **Class 2** | 0 | 9,712 | 0 | 0 | 9,712 |
-| **Class 3** | 0 | 185 | 0 | 0 | 185 |
-| **전체** | 0 | 175,707 | 0 | 0 | 175,707 |
+| **Class 0: 무기징역·사형** | 0 | 349 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 0 | **165,461** | 0 | 0 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 9,712 | 0 | 0 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 185 | 0 | 0 | 185 |
+| **전체 예측 건수** | 0 | 175,707 | 0 | 0 | 175,707 |
 
 ##### 분류 보고서
 
 | 구분 | Precision | Recall | F1-score | Support |
 |---|---:|---:|---:|---:|
-| **Class 0: 무기징역·사형** | 0.0000 | 0.0000 | 0.0000 | 349 |
-| **Class 1: 기간형** | 0.9417 | 1.0000 | 0.9700 | 165,461 |
-| **Class 2: 보호관찰 Only** | 0.0000 | 0.0000 | 0.0000 | 9,712 |
-| **Class 3: 벌금 Only** | 0.0000 | 0.0000 | 0.0000 | 185 |
-| **Accuracy** | — | — | **0.9417** | 175,707 |
-| **Macro average** | 0.2354 | 0.2500 | 0.2425 | 175,707 |
-| **Weighted average** | 0.8868 | 0.9417 | 0.9134 | 175,707 |
+| **Class 0: 무기징역·사형** | 0.00 | 0.00 | 0.00 | 349 |
+| **Class 1: 기간형** | 0.94 | 1.00 | 0.97 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0.00 | 0.00 | 0.00 | 9,712 |
+| **Class 3: 벌금 Only** | 0.00 | 0.00 | 0.00 | 185 |
+| **Accuracy** | — | — | **0.94** | 175,707 |
+| **Macro average** | 0.24 | 0.25 | 0.24 | 175,707 |
+| **Weighted average** | 0.89 | 0.94 | 0.91 | 175,707 |
 
 ---
 
-### 3.3 Logistic Regression — Balanced
+### 3.3 Logistic Regression — Balanced (`class_weight='balanced'`)
 
 #### 실행 코드
 
@@ -445,42 +383,16 @@ Logisticbalanced=LogisticRegression(
 )
 
 modelA1=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_A
-    ),
-    (
-        'logistic',
-        Logisticbalanced
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('logistic',Logisticbalanced)
 ])
 
-y_pred=cross_val_predict(
-    modelA1,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelA1,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -498,11 +410,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 328 | 21 | 0 | 0 | 349 |
-| **Class 1** | 3,210 | 98,392 | 53,062 | 10,797 | 165,461 |
-| **Class 2** | 1 | 1,547 | 5,347 | 2,817 | 9,712 |
-| **Class 3** | 0 | 9 | 25 | 151 | 185 |
-| **전체** | 3,539 | 99,969 | 58,434 | 13,765 | 175,707 |
+| **Class 0: 무기징역·사형** | **328** | 21 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 3,210 | **98,392** | 53,062 | 10,797 | 165,461 |
+| **Class 2: 보호관찰 Only** | 1 | 1,547 | **5,347** | 2,817 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 9 | 25 | **151** | 185 |
+| **전체 예측 건수** | 3,539 | 99,969 | 58,434 | 13,765 | 175,707 |
 
 ##### 분류 보고서
 
@@ -518,7 +430,7 @@ print(
 
 ---
 
-### 3.4 Decision Tree — None
+### 3.4 Decision Tree — None (`class_weight=None`)
 
 #### 실행 코드
 
@@ -533,42 +445,16 @@ Decision1=DecisionTreeClassifier(
 )
 
 modelA3=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_A
-    ),
-    (
-        'tree',
-        Decision1
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('tree',Decision1)
 ])
 
-y_pred=cross_val_predict(
-    modelA3,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelA3,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -586,27 +472,27 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 0 | 349 | 0 | 0 | 349 |
-| **Class 1** | 0 | 165,461 | 0 | 0 | 165,461 |
-| **Class 2** | 0 | 9,712 | 0 | 0 | 9,712 |
-| **Class 3** | 0 | 185 | 0 | 0 | 185 |
-| **전체** | 0 | 175,707 | 0 | 0 | 175,707 |
+| **Class 0: 무기징역·사형** | 0 | 349 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 0 | **165,461** | 0 | 0 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 9,712 | 0 | 0 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 185 | 0 | 0 | 185 |
+| **전체 예측 건수** | 0 | 175,707 | 0 | 0 | 175,707 |
 
 ##### 분류 보고서
 
 | 구분 | Precision | Recall | F1-score | Support |
 |---|---:|---:|---:|---:|
-| **Class 0: 무기징역·사형** | 0.0000 | 0.0000 | 0.0000 | 349 |
-| **Class 1: 기간형** | 0.9417 | 1.0000 | 0.9700 | 165,461 |
-| **Class 2: 보호관찰 Only** | 0.0000 | 0.0000 | 0.0000 | 9,712 |
-| **Class 3: 벌금 Only** | 0.0000 | 0.0000 | 0.0000 | 185 |
-| **Accuracy** | — | — | **0.9417** | 175,707 |
-| **Macro average** | 0.2354 | 0.2500 | 0.2425 | 175,707 |
-| **Weighted average** | 0.8868 | 0.9417 | 0.9134 | 175,707 |
+| **Class 0: 무기징역·사형** | 0.00 | 0.00 | 0.00 | 349 |
+| **Class 1: 기간형** | 0.94 | 1.00 | 0.97 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0.00 | 0.00 | 0.00 | 9,712 |
+| **Class 3: 벌금 Only** | 0.00 | 0.00 | 0.00 | 185 |
+| **Accuracy** | — | — | **0.94** | 175,707 |
+| **Macro average** | 0.24 | 0.25 | 0.24 | 175,707 |
+| **Weighted average** | 0.89 | 0.94 | 0.91 | 175,707 |
 
 ---
 
-### 3.5 Decision Tree — Balanced
+### 3.5 Decision Tree — Balanced (`class_weight='balanced'`)
 
 #### 실행 코드
 
@@ -620,42 +506,16 @@ Decision2=DecisionTreeClassifier(
 )
 
 modelA4=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_A
-    ),
-    (
-        'tree',
-        Decision2
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('tree',Decision2)
 ])
 
-y_pred=cross_val_predict(
-    modelA4,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelA4,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -673,11 +533,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 332 | 17 | 0 | 0 | 349 |
-| **Class 1** | 4,615 | 117,578 | 31,161 | 12,107 | 165,461 |
-| **Class 2** | 1 | 2,557 | 4,281 | 2,873 | 9,712 |
-| **Class 3** | 0 | 14 | 20 | 151 | 185 |
-| **전체** | 4,948 | 120,166 | 35,462 | 15,131 | 175,707 |
+| **Class 0: 무기징역·사형** | **332** | 17 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 4,615 | **117,578** | 31,161 | 12,107 | 165,461 |
+| **Class 2: 보호관찰 Only** | 1 | 2,557 | **4,281** | 2,873 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 14 | 20 | **151** | 185 |
+| **전체 예측 건수** | 4,948 | 120,166 | 35,462 | 15,131 | 175,707 |
 
 ##### 분류 보고서
 
@@ -693,7 +553,7 @@ print(
 
 ---
 
-### 3.6 Random Forest — None
+### 3.6 Random Forest — None (`class_weight=None`)
 
 #### 실행 코드
 
@@ -710,42 +570,16 @@ RandomForestModel=RandomForestClassifier(
 )
 
 modelA_RF=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_A
-    ),
-    (
-        'randomforest',
-        RandomForestModel
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('randomforest',RandomForestModel)
 ])
 
-y_pred=cross_val_predict(
-    modelA_RF,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelA_RF,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -763,11 +597,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 0 | 349 | 0 | 0 | 349 |
-| **Class 1** | 0 | 165,450 | 11 | 0 | 165,461 |
-| **Class 2** | 0 | 9,703 | 9 | 0 | 9,712 |
-| **Class 3** | 0 | 185 | 0 | 0 | 185 |
-| **전체** | 0 | 175,687 | 20 | 0 | 175,707 |
+| **Class 0: 무기징역·사형** | 0 | 349 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 0 | **165,450** | 11 | 0 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 9,703 | **9** | 0 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 185 | 0 | 0 | 185 |
+| **전체 예측 건수** | 0 | 175,687 | 20 | 0 | 175,707 |
 
 ##### 분류 보고서
 
@@ -783,13 +617,12 @@ print(
 
 ---
 
-### 3.7 Random Forest — Balanced
+### 3.7 Random Forest — Balanced (`class_weight='balanced_subsample'`)
 
 #### 실행 코드
 
 ```python
-# baseline A 모델 - Randomforest
-# class_weight='balanced_subsample'
+# baseline A 모델 - Randomforest ( class_weight='balanced_subsample' )
 
 RandomForestBalanced=RandomForestClassifier(
     n_estimators=300,
@@ -799,42 +632,16 @@ RandomForestBalanced=RandomForestClassifier(
 )
 
 modelA_RF_balanced=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_A
-    ),
-    (
-        'randomforest',
-        RandomForestBalanced
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('randomforest',RandomForestBalanced)
 ])
 
-y_pred=cross_val_predict(
-    modelA_RF_balanced,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelA_RF_balanced,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -852,11 +659,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 328 | 21 | 0 | 0 | 349 |
-| **Class 1** | 3,103 | 119,783 | 31,455 | 11,120 | 165,461 |
-| **Class 2** | 0 | 2,570 | 4,316 | 2,826 | 9,712 |
-| **Class 3** | 0 | 14 | 20 | 151 | 185 |
-| **전체** | 3,431 | 122,388 | 35,791 | 14,097 | 175,707 |
+| **Class 0: 무기징역·사형** | **328** | 21 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 3,103 | **119,783** | 31,455 | 11,120 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 2,570 | **4,316** | 2,826 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 14 | 20 | **151** | 185 |
+| **전체 예측 건수** | 3,431 | 122,388 | 35,791 | 14,097 | 175,707 |
 
 ##### 분류 보고서
 
@@ -872,13 +679,12 @@ print(
 
 ---
 
-### 3.8 HistGradientBoosting — None
+### 3.8 HistGradientBoosting — None (`class_weight=None`)
 
 #### 실행 코드
 
 ```python
-# baseline A 모델 - HistGradientBoosting
-# class_weight=None
+# baseline A 모델 - HistGradientBoosting ( class_weight=None )
 
 from sklearn.ensemble import HistGradientBoostingClassifier
 
@@ -890,42 +696,16 @@ HistGradientModel=HistGradientBoostingClassifier(
 )
 
 modelA_HGB=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_A
-    ),
-    (
-        'histgradient',
-        HistGradientModel
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('histgradient',HistGradientModel)
 ])
 
-y_pred=cross_val_predict(
-    modelA_HGB,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelA_HGB,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -943,11 +723,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 188 | 161 | 0 | 0 | 349 |
-| **Class 1** | 760 | 164,676 | 25 | 0 | 165,461 |
-| **Class 2** | 0 | 9,712 | 0 | 0 | 9,712 |
-| **Class 3** | 0 | 185 | 0 | 0 | 185 |
-| **전체** | 948 | 174,734 | 25 | 0 | 175,707 |
+| **Class 0: 무기징역·사형** | **188** | 161 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 760 | **164,676** | 25 | 0 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 9,712 | 0 | 0 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 185 | 0 | 0 | 185 |
+| **전체 예측 건수** | 948 | 174,734 | 25 | 0 | 175,707 |
 
 ##### 분류 보고서
 
@@ -963,13 +743,12 @@ print(
 
 ---
 
-### 3.9 HistGradientBoosting — Balanced
+### 3.9 HistGradientBoosting — Balanced (`class_weight='balanced'`)
 
 #### 실행 코드
 
 ```python
-# baseline A 모델 - HistGradientBoosting
-# class_weight='balanced'
+# baseline A 모델 - HistGradientBoosting ( class_weight='balanced' )
 
 HistGradientBalanced=HistGradientBoostingClassifier(
     class_weight='balanced',
@@ -979,42 +758,16 @@ HistGradientBalanced=HistGradientBoostingClassifier(
 )
 
 modelA_HGB_balanced=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_A
-    ),
-    (
-        'histgradient',
-        HistGradientBalanced
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_A),
+    ('histgradient',HistGradientBalanced)
 ])
 
-y_pred=cross_val_predict(
-    modelA_HGB_balanced,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelA_HGB_balanced,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -1032,11 +785,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 333 | 16 | 0 | 0 | 349 |
-| **Class 1** | 5,772 | 116,483 | 31,087 | 12,119 | 165,461 |
-| **Class 2** | 1 | 2,565 | 4,273 | 2,873 | 9,712 |
-| **Class 3** | 0 | 14 | 20 | 151 | 185 |
-| **전체** | 6,106 | 119,078 | 35,380 | 15,143 | 175,707 |
+| **Class 0: 무기징역·사형** | **333** | 16 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 5,772 | **116,483** | 31,087 | 12,119 | 165,461 |
+| **Class 2: 보호관찰 Only** | 1 | 2,565 | **4,273** | 2,873 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 14 | 20 | **151** | 185 |
+| **전체 예측 건수** | 6,106 | 119,078 | 35,380 | 15,143 | 175,707 |
 
 ##### 분류 보고서
 
@@ -1054,9 +807,19 @@ print(
 
 ## 4. Baseline B 모형 평가
 
-Baseline B는 Baseline A의 GL 파생변수에 양형구간 변수인 `ZONE`을 추가한 모형이다. 모든 모형은 Baseline A와 동일한 5-fold Stratified Cross-Validation 분할과 평가 지표를 사용한다.
+### 4.1 입력 변수 및 전처리기
 
-### 4.1 Baseline B 전처리기 구성
+#### 입력 변수 구성
+
+| 구분 | 변수 | 처리 방식 |
+|---|---|---|
+| 가이드라인 하한 | `GLMIN_MONTH` | `GLMIN == 9996`이면 0으로 변환한 뒤 수치형으로 통과 |
+| 가이드라인 상한 | `GLMAX_MONTH` | `GLMAX == 9996`이면 0으로 변환한 뒤 수치형으로 통과 |
+| 하한 0 여부 | `GLMIN_ZERO` | `GLMIN == 0`이면 1, 아니면 0 |
+| 가이드라인 범위 유형 | `GL_RANGE_TYPE` | `finite`, `finite_to_life`, `life`를 원-핫 인코딩 |
+| 양형구간 | `ZONE` | `A`, `B`, `C`, `D`를 원-핫 인코딩 |
+
+#### 전처리기 생성 코드
 
 ```python
 # baseline B 전처리기 생성
@@ -1066,24 +829,16 @@ preprocessor_B = ColumnTransformer(
         (
             'pass',
             'passthrough',
-            [
-                'GLMIN_MONTH',
-                'GLMAX_MONTH',
-                'GLMIN_ZERO'
-            ]
+            ['GLMIN_MONTH','GLMAX_MONTH','GLMIN_ZERO']
         ),
         (
             'Encoder1',
-            OneHotEncoder(
-                sparse_output=False
-            ),
+            OneHotEncoder(sparse_output=False),
             ['GL_RANGE_TYPE']
         ),
         (
             'Encoder2',
-            OneHotEncoder(
-                sparse_output=False
-            ),
+            OneHotEncoder(sparse_output=False),
             ['ZONE']
         )
     ],
@@ -1093,54 +848,26 @@ preprocessor_B = ColumnTransformer(
 
 ---
 
-### 4.2 Logistic Regression — None
+### 4.2 Logistic Regression — None (`class_weight=None`)
 
 #### 실행 코드
 
 ```python
 # baseline B 모델 - Logistic ( class_weight=None )
 
-Logistic=LogisticRegression(
-    max_iter=10000
-)
+Logistic=LogisticRegression(max_iter=10000)
 
 modelB2=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_B
-    ),
-    (
-        'logistic',
-        Logistic
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_B),
+    ('logistic',Logistic)
 ])
 
-y_pred=cross_val_predict(
-    modelB2,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelB2,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -1158,11 +885,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 0 | 349 | 0 | 0 | 349 |
-| **Class 1** | 0 | 165,461 | 0 | 0 | 165,461 |
-| **Class 2** | 0 | 9,712 | 0 | 0 | 9,712 |
-| **Class 3** | 0 | 185 | 0 | 0 | 185 |
-| **전체** | 0 | 175,707 | 0 | 0 | 175,707 |
+| **Class 0: 무기징역·사형** | 0 | 349 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 0 | **165,461** | 0 | 0 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 9,712 | 0 | 0 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 185 | 0 | 0 | 185 |
+| **전체 예측 건수** | 0 | 175,707 | 0 | 0 | 175,707 |
 
 ##### 분류 보고서
 
@@ -1178,7 +905,7 @@ print(
 
 ---
 
-### 4.3 Logistic Regression — Balanced
+### 4.3 Logistic Regression — Balanced (`class_weight='balanced'`)
 
 #### 실행 코드
 
@@ -1191,42 +918,16 @@ Logisticbalanced=LogisticRegression(
 )
 
 modelB1=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_B
-    ),
-    (
-        'logistic',
-        Logisticbalanced
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_B),
+    ('logistic',Logisticbalanced)
 ])
 
-y_pred=cross_val_predict(
-    modelB1,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelB1,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -1244,11 +945,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 328 | 21 | 0 | 0 | 349 |
-| **Class 1** | 3,033 | 102,453 | 49,061 | 10,914 | 165,461 |
-| **Class 2** | 1 | 1,800 | 5,091 | 2,820 | 9,712 |
-| **Class 3** | 0 | 10 | 24 | 151 | 185 |
-| **전체** | 3,362 | 104,284 | 54,176 | 13,885 | 175,707 |
+| **Class 0: 무기징역·사형** | **328** | 21 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 3,033 | **102,453** | 49,061 | 10,914 | 165,461 |
+| **Class 2: 보호관찰 Only** | 1 | 1,800 | **5,091** | 2,820 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 10 | 24 | **151** | 185 |
+| **전체 예측 건수** | 3,362 | 104,284 | 54,176 | 13,885 | 175,707 |
 
 ##### 분류 보고서
 
@@ -1264,14 +965,12 @@ print(
 
 ---
 
-### 4.4 Decision Tree — None
+### 4.4 Decision Tree — None (`class_weight=None`)
 
 #### 실행 코드
 
 ```python
 # baseline B 모델 - Decision Tree ( class_weight=None )
-
-from sklearn.tree import DecisionTreeClassifier
 
 Decision1=DecisionTreeClassifier(
     criterion='gini',
@@ -1279,42 +978,16 @@ Decision1=DecisionTreeClassifier(
 )
 
 modelB3=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_B
-    ),
-    (
-        'tree',
-        Decision1
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_B),
+    ('tree',Decision1)
 ])
 
-y_pred=cross_val_predict(
-    modelB3,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelB3,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -1332,11 +1005,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 0 | 349 | 0 | 0 | 349 |
-| **Class 1** | 0 | 165,461 | 0 | 0 | 165,461 |
-| **Class 2** | 0 | 9,712 | 0 | 0 | 9,712 |
-| **Class 3** | 0 | 185 | 0 | 0 | 185 |
-| **전체** | 0 | 175,707 | 0 | 0 | 175,707 |
+| **Class 0: 무기징역·사형** | 0 | 349 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 0 | **165,461** | 0 | 0 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 9,712 | 0 | 0 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 185 | 0 | 0 | 185 |
+| **전체 예측 건수** | 0 | 175,707 | 0 | 0 | 175,707 |
 
 ##### 분류 보고서
 
@@ -1352,7 +1025,7 @@ print(
 
 ---
 
-### 4.5 Decision Tree — Balanced
+### 4.5 Decision Tree — Balanced (`class_weight='balanced'`)
 
 #### 실행 코드
 
@@ -1366,42 +1039,16 @@ Decision2=DecisionTreeClassifier(
 )
 
 modelB4=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_B
-    ),
-    (
-        'tree',
-        Decision2
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_B),
+    ('tree',Decision2)
 ])
 
-y_pred=cross_val_predict(
-    modelB4,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelB4,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -1419,11 +1066,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 332 | 17 | 0 | 0 | 349 |
-| **Class 1** | 4,615 | 117,661 | 31,022 | 12,163 | 165,461 |
-| **Class 2** | 1 | 2,557 | 4,281 | 2,873 | 9,712 |
-| **Class 3** | 0 | 15 | 19 | 151 | 185 |
-| **전체** | 4,948 | 120,250 | 35,322 | 15,187 | 175,707 |
+| **Class 0: 무기징역·사형** | **332** | 17 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 4,615 | **117,661** | 31,022 | 12,163 | 165,461 |
+| **Class 2: 보호관찰 Only** | 1 | 2,557 | **4,281** | 2,873 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 15 | 19 | **151** | 185 |
+| **전체 예측 건수** | 4,948 | 120,250 | 35,322 | 15,187 | 175,707 |
 
 ##### 분류 보고서
 
@@ -1439,14 +1086,12 @@ print(
 
 ---
 
-### 4.6 Random Forest — None
+### 4.6 Random Forest — None (`class_weight=None`)
 
 #### 실행 코드
 
 ```python
 # baseline B 모델 - Randomforest ( class_weight=None )
-
-from sklearn.ensemble import RandomForestClassifier
 
 RandomForestModel=RandomForestClassifier(
     n_estimators=300,
@@ -1456,42 +1101,16 @@ RandomForestModel=RandomForestClassifier(
 )
 
 modelB_RF=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_B
-    ),
-    (
-        'randomforest',
-        RandomForestModel
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_B),
+    ('randomforest',RandomForestModel)
 ])
 
-y_pred=cross_val_predict(
-    modelB_RF,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelB_RF,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -1509,11 +1128,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 0 | 349 | 0 | 0 | 349 |
-| **Class 1** | 0 | 165,450 | 11 | 0 | 165,461 |
-| **Class 2** | 0 | 9,703 | 9 | 0 | 9,712 |
-| **Class 3** | 0 | 185 | 0 | 0 | 185 |
-| **전체** | 0 | 175,687 | 20 | 0 | 175,707 |
+| **Class 0: 무기징역·사형** | 0 | 349 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 0 | **165,450** | 11 | 0 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 9,703 | **9** | 0 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 185 | 0 | 0 | 185 |
+| **전체 예측 건수** | 0 | 175,687 | 20 | 0 | 175,707 |
 
 ##### 분류 보고서
 
@@ -1529,13 +1148,12 @@ print(
 
 ---
 
-### 4.7 Random Forest — Balanced
+### 4.7 Random Forest — Balanced (`class_weight='balanced_subsample'`)
 
 #### 실행 코드
 
 ```python
-# baseline B 모델 - Randomforest
-# class_weight='balanced_subsample'
+# baseline B 모델 - Randomforest ( class_weight='balanced_subsample' )
 
 RandomForestBalanced=RandomForestClassifier(
     n_estimators=300,
@@ -1545,21 +1163,9 @@ RandomForestBalanced=RandomForestClassifier(
 )
 
 modelB_RF_balanced=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_B
-    ),
-    (
-        'randomforest',
-        RandomForestBalanced
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_B),
+    ('randomforest',RandomForestBalanced)
 ])
 
 y_pred=cross_val_predict(
@@ -1570,17 +1176,8 @@ y_pred=cross_val_predict(
 )
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -1598,11 +1195,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 328 | 21 | 0 | 0 | 349 |
-| **Class 1** | 3,103 | 119,872 | 31,310 | 11,176 | 165,461 |
-| **Class 2** | 0 | 2,574 | 4,312 | 2,826 | 9,712 |
-| **Class 3** | 0 | 15 | 19 | 151 | 185 |
-| **전체** | 3,431 | 122,482 | 35,641 | 14,153 | 175,707 |
+| **Class 0: 무기징역·사형** | **328** | 21 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 3,103 | **119,872** | 31,310 | 11,176 | 165,461 |
+| **Class 2: 보호관찰 Only** | 0 | 2,574 | **4,312** | 2,826 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 15 | 19 | **151** | 185 |
+| **전체 예측 건수** | 3,431 | 122,482 | 35,641 | 14,153 | 175,707 |
 
 ##### 분류 보고서
 
@@ -1618,15 +1215,12 @@ print(
 
 ---
 
-### 4.8 HistGradientBoosting — None
+### 4.8 HistGradientBoosting — None (`class_weight=None`)
 
 #### 실행 코드
 
 ```python
-# baseline B 모델 - HistGradientBoosting
-# class_weight=None
-
-from sklearn.ensemble import HistGradientBoostingClassifier
+# baseline B 모델 - HistGradientBoosting ( class_weight=None )
 
 HistGradientModel=HistGradientBoostingClassifier(
     class_weight=None,
@@ -1636,42 +1230,16 @@ HistGradientModel=HistGradientBoostingClassifier(
 )
 
 modelB_HGB=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_B
-    ),
-    (
-        'histgradient',
-        HistGradientModel
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_B),
+    ('histgradient',HistGradientModel)
 ])
 
-y_pred=cross_val_predict(
-    modelB_HGB,
-    X,
-    y,
-    cv=cv
-)
+y_pred=cross_val_predict(modelB_HGB,X,y,cv=cv)
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -1689,11 +1257,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 119 | 230 | 0 | 0 | 349 |
-| **Class 1** | 714 | 164,709 | 38 | 0 | 165,461 |
-| **Class 2** | 16 | 9,668 | 28 | 0 | 9,712 |
-| **Class 3** | 0 | 185 | 0 | 0 | 185 |
-| **전체** | 849 | 174,792 | 66 | 0 | 175,707 |
+| **Class 0: 무기징역·사형** | **119** | 230 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 714 | **164,709** | 38 | 0 | 165,461 |
+| **Class 2: 보호관찰 Only** | 16 | 9,668 | **28** | 0 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 185 | 0 | 0 | 185 |
+| **전체 예측 건수** | 849 | 174,792 | 66 | 0 | 175,707 |
 
 ##### 분류 보고서
 
@@ -1709,13 +1277,12 @@ print(
 
 ---
 
-### 4.9 HistGradientBoosting — Balanced
+### 4.9 HistGradientBoosting — Balanced (`class_weight='balanced'`)
 
 #### 실행 코드
 
 ```python
-# baseline B 모델 - HistGradientBoosting
-# class_weight='balanced'
+# baseline B 모델 - HistGradientBoosting ( class_weight='balanced' )
 
 HistGradientBalanced=HistGradientBoostingClassifier(
     class_weight='balanced',
@@ -1725,21 +1292,9 @@ HistGradientBalanced=HistGradientBoostingClassifier(
 )
 
 modelB_HGB_balanced=Pipeline([
-    (
-        'add',
-        FunctionTransformer(
-            add_GL_features,
-            validate=False
-        )
-    ),
-    (
-        'prepro',
-        preprocessor_B
-    ),
-    (
-        'histgradient',
-        HistGradientBalanced
-    )
+    ('add',FunctionTransformer(add_GL_features,validate=False)),
+    ('prepro',preprocessor_B),
+    ('histgradient',HistGradientBalanced)
 ])
 
 y_pred=cross_val_predict(
@@ -1750,17 +1305,8 @@ y_pred=cross_val_predict(
 )
 
 print('혼동행렬')
-
-print(
-    confusion_matrix(
-        y,
-        y_pred,
-        labels=[0,1,2,3]
-    )
-)
-
+print(confusion_matrix(y,y_pred,labels=[0,1,2,3]))
 print('결과')
-
 print(
     classification_report(
         y,
@@ -1778,11 +1324,11 @@ print(
 
 | 실제 \ 예측 | Class 0 | Class 1 | Class 2 | Class 3 | 전체 |
 |---|---:|---:|---:|---:|---:|
-| **Class 0** | 333 | 16 | 0 | 0 | 349 |
-| **Class 1** | 5,769 | 116,602 | 30,921 | 12,169 | 165,461 |
-| **Class 2** | 1 | 2,572 | 4,264 | 2,875 | 9,712 |
-| **Class 3** | 0 | 15 | 19 | 151 | 185 |
-| **전체** | 6,103 | 119,205 | 35,204 | 15,195 | 175,707 |
+| **Class 0: 무기징역·사형** | **333** | 16 | 0 | 0 | 349 |
+| **Class 1: 기간형** | 5,769 | **116,602** | 30,921 | 12,169 | 165,461 |
+| **Class 2: 보호관찰 Only** | 1 | 2,572 | **4,264** | 2,875 | 9,712 |
+| **Class 3: 벌금 Only** | 0 | 15 | 19 | **151** | 185 |
+| **전체 예측 건수** | 6,103 | 119,205 | 35,204 | 15,195 | 175,707 |
 
 ##### 분류 보고서
 
@@ -1794,34 +1340,39 @@ print(
 | **Class 3: 벌금 Only** | 0.0099 | 0.8162 | 0.0196 | 185 |
 | **Accuracy** | — | — | **0.6906** | 175,707 |
 | **Macro average** | 0.2909 | 0.7285 | 0.2830 | 175,707 |
-| **Weighted average** | 0.9279 | 0.6906 | 0.7822 | 175,707 |
+| **Weighted average** | 0.9280 | 0.6906 | 0.7824 | 175,707 |
 
 ---
 
-## 5. Baseline A·B 중간 성능 비교
+## 5. Baseline A·B 성능 비교
+
+Baseline A와 Baseline B는 동일한 자료, 반응변수, 5-fold Stratified Cross-Validation 및 분류모형을 사용한다. 두 Baseline의 차이는 입력 변수에 `ZONE`을 포함하는지 여부이다.
+
+| Baseline | 입력 정보 |
+|---|---|
+| **Baseline A** | `GLMIN`, `GLMAX` 및 가이드라인 범위 파생변수 |
+| **Baseline B** | Baseline A 입력 정보 + `ZONE` |
 
 다음 값은 `cross_val_predict()`로 생성한 전체 Out-of-Fold 예측을 기준으로 계산한 결과이다.
 
-Baseline A는 GL 관련 변수만 사용하고, Baseline B는 동일한 변수에 `ZONE`을 추가한다.
+| Baseline | 모형 | 클래스 가중치 | Accuracy | Macro Precision | Macro Recall | Macro F1 |
+|---|---|---|---:|---:|---:|---:|
+| A | Dummy Classifier | Most Frequent | 0.9400 | 0.2400 | 0.2500 | 0.2400 |
+| A | Logistic Regression | None | 0.9400 | 0.2400 | 0.2500 | 0.2400 |
+| B | Logistic Regression | None | 0.9417 | 0.2354 | 0.2500 | 0.2425 |
+| A | Logistic Regression | Balanced | 0.5900 | 0.2900 | 0.7300 | 0.2700 |
+| B | Logistic Regression | Balanced | 0.6148 | 0.2962 | 0.7249 | 0.2793 |
+| A | Decision Tree | None | 0.9400 | 0.2400 | 0.2500 | 0.2400 |
+| B | Decision Tree | None | 0.9417 | 0.2354 | 0.2500 | 0.2425 |
+| A | Decision Tree | Balanced | 0.7000 | 0.2900 | 0.7300 | 0.2900 |
+| B | Decision Tree | Balanced | 0.6968 | 0.2942 | 0.7299 | 0.2897 |
+| A | Random Forest | None | 0.9417 | 0.3479 | 0.2502 | 0.2430 |
+| B | Random Forest | None | 0.9417 | 0.3479 | 0.2502 | 0.2430 |
+| A | Random Forest | Balanced (`balanced_subsample`) | 0.7090 | 0.3014 | 0.7311 | 0.3042 |
+| B | Random Forest | Balanced (`balanced_subsample`) | 0.7095 | 0.3015 | 0.7311 | 0.3043 |
+| A | HistGradientBoosting | None | 0.9383 | 0.2852 | 0.3835 | 0.3145 |
+| B | HistGradientBoosting | None | 0.9382 | 0.3767 | 0.3348 | 0.2931 |
+| A | HistGradientBoosting | Balanced | 0.6900 | 0.2909 | 0.7286 | 0.2828 |
+| B | HistGradientBoosting | Balanced | 0.6906 | 0.2909 | 0.7285 | 0.2830 |
 
-| Baseline | 모형 | 클래스 가중치 | Accuracy | Macro Recall | Macro F1 |
-|:---:|---|---|---:|---:|---:|
-| A | Dummy Classifier | Most Frequent | 0.9417 | 0.2500 | 0.2425 |
-| A | Logistic Regression | None | 0.9417 | 0.2500 | 0.2425 |
-| A | Logistic Regression | Balanced | 0.5900 | 0.7300 | 0.2700 |
-| A | Decision Tree | None | 0.9417 | 0.2500 | 0.2425 |
-| A | Decision Tree | Balanced | 0.7000 | 0.7300 | 0.2900 |
-| A | Random Forest | None | 0.9417 | 0.2502 | 0.2430 |
-| A | Random Forest | Balanced (`balanced_subsample`) | 0.7090 | 0.7311 | 0.3042 |
-| A | HistGradientBoosting | None | 0.9383 | 0.3835 | 0.3145 |
-| A | HistGradientBoosting | Balanced | 0.6900 | 0.7286 | 0.2828 |
-| B | Logistic Regression | None | 0.9417 | 0.2500 | 0.2425 |
-| B | Logistic Regression | Balanced | 0.6148 | 0.7249 | 0.2793 |
-| B | Decision Tree | None | 0.9417 | 0.2500 | 0.2425 |
-| B | Decision Tree | Balanced | 0.6968 | 0.7299 | 0.2897 |
-| B | Random Forest | None | 0.9417 | 0.2502 | 0.2430 |
-| B | Random Forest | Balanced (`balanced_subsample`) | 0.7095 | 0.7311 | 0.3043 |
-| B | HistGradientBoosting | None | 0.9382 | 0.3348 | 0.2931 |
-| B | HistGradientBoosting | Balanced | 0.6906 | 0.7285 | 0.2830 |
-
-> 세부적인 클래스별 성능과 혼동행렬은 각 모형의 평가 결과에 제시하였다.
+> Baseline A의 Logistic Regression과 Decision Tree 결과는 기존 실행 출력의 소수점 둘째 자리까지 기록된 값을 그대로 사용하였다. 세부적인 클래스별 성능과 혼동행렬은 각 모형의 평가 결과에 제시하였다.
