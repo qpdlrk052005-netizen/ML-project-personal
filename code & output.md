@@ -57,6 +57,11 @@ print(
     '결측치 개수\n',
     df22.isna().sum().sort_values()
 )
+
+df22.to_csv('baselinedata2022.csv',index=False)
+
+df=pd.read_csv('baselinedata2022.csv')
+
 ```
 
 # 결과
@@ -85,6 +90,3 @@ FINEMAX     2069
 FINEMIN     2088
 dtype: int64
 ```
-df22.to_csv('baselinedata2022.csv',index=False)
-
-df=pd.read_csv('baselinedata2022.csv')
