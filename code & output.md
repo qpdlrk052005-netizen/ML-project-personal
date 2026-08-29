@@ -70,7 +70,7 @@ df=pd.read_csv('baselinedata2022.csv')
 사형으로 판정된 사건의 개수 =  0
 
 결측치 개수
- ZONE           0
+ZONE           0
 XCRHISSR       0
 SOURCES        0
 SENTIMP        0
