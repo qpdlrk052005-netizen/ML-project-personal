@@ -62,6 +62,11 @@ df22.to_csv('baselinedata2022.csv',index=False)
 
 df=pd.read_csv('baselinedata2022.csv')
 
+print(
+    'Class별 분포\n',
+    df['Class'].value_counts().sort_index()
+)
+
 ```
 
 # 결과
@@ -89,4 +94,12 @@ STATMIN      127
 FINEMAX     2069
 FINEMIN     2088
 dtype: int64
+
+Class별 분포
+ Class
+0      111
+1    57488
+2     3347
+3       60
+Name: count, dtype: int64
 ```
