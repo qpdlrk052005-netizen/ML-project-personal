@@ -150,4 +150,4 @@ def Handling_missing(df) :
     return X
 ```
 
-# 결측치 처리 파이프라인 생성
+# 특이값 처리 파이프라인 생성
