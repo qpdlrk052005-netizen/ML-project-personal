@@ -103,3 +103,51 @@ Class별 분포
 3       60
 Name: count, dtype: int64
 ```
+
+# 결측치 처리 함수
+```python
+def Handling_missing(df) :
+    X = df.copy()
+    # GDLINEHI / NOCOMP 결측치 처리
+    gdlmiss = X['GDLINEHI'].isna()
+    nomiss = X['NOCOMP'].isna()
+    X['OTHER_CAL'] = ( gdlmiss & nomiss ).astype('int')
+    X['GDLINEHI'] = (
+        X['GDLINEHI']
+        .astype('string')
+        .fillna('MISSING')
+    )
+
+    # STATMIN,STATMAX 결측치 처리
+    X['STATMIN_MISSING'] = X['STATMIN'].isna().astype('int')
+    X['STATMAX_MISSING'] = X['STATMAX'].isna().astype('int')
+    X['MIN_TRUMP_STATUS'] = np.select(
+        [
+            X['XMINSOR'] == X['GLMIN'],
+            X['XMINSOR'] < X['GLMIN'],
+            X['XMINSOR'] > X['GLMIN']
+        ],
+        [
+            'SAME',
+            'RAISED',
+            'LOWERED'
+        ],
+        default="UNKNOWN"
+    )
+    X['MAX_TRUMP_STATUS'] = np.select(
+        [
+            X['XMAXSOR'] == X['GLMAX'],
+            X['XMAXSOR'] < X['GLMAX'],
+            X['XMAXSOR'] > X['GLMAX']
+        ],
+        [
+            'SAME',
+            'RAISED',
+            'LOWERED'
+        ],
+        default="UNKNOWN"
+    )
+    return X
+```
+
+# 결측치 처리 파이프라인 생성
