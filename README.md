@@ -406,23 +406,11 @@ RMSE는 극단적으로 긴 자유 제한 기간의 영향을 크게 받으므�
 * Yao, H., Choi, C., Cao, B., Lee, Y., Koh, P. W., & Finn, C. (2022). [Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time](https://papers.nips.cc/paper_files/paper/2022/file/43119db5d59f07cc08fca7ba6820179a-Paper-Datasets_and_Benchmarks.pdf). *NeurIPS 2022*.
 
 # 프로젝트 과정
-  1. 분석 대상 및 설명/반응변수 정의
-     - 형벌 유형 분류기 A - 설명변수 = 'GLMIN','GLMAX'
-     - 형벌 유형 분류기 B - 설명변수 = 'GLMIN','GLMAX','ZONE'
-     - 분류기 반응변수('Class') = 0 - 무기징역/사형 // 1 - 실제 자유 제한 기간이 있는 경우 // 2 - 보호관찰만 // 3-벌금형
-    
-     - 설명변수가 1일 경우 - 실제 자유 제한 기간을 예측하는 baseline 회귀모델로 예측
-     - baseline 회귀모델 - 설명변수 = 'GLMIN','GLMAX', ... 반응변수 = 실제 자유 제한 기간
-
-     - 군집화 피처 = 'PRESENT','NEWCNVTN','DISTRICT','CITIZEN','AGE','NEWEDUC' ( 1차 )
-    
-     # 데이터 전처리
-       - 'Class' 열 생성
-       - 'GLMIN','GLMAX'에 특수값 존재 -> 특수값인 경우를 nan처리한 'GLMIN_MONTH','GLMAX_MONTH' 생성 ( 나중에 파이프라인으로 nan 대체 -> 미리 대체하면 데이터 누수 )
-       - 'GLMIN_LIFE',"GLMAX_LIFE'도 생성해서, 9996일 때 1인 범주형 변수 만들기.
-       - 'GLMIN_ZERO'도 만들어서, GLMIN==0일 때 보호관찰을 허용한다는 점을 이용하기.
-         
-  2. 모델 구축
-      - 클래스의 수가 0(349), 1(165461), 2(9712), 3(185)로 클래스 불균형이 심한 상황이다. -> StratifiedKFold(CV)로 교차 검증할 때 클래스의 비율을 유지한다.
-      - 모델 평가 기준
-        - 주 평가 기준 = Marco F1
+1. 데이터 전처리 / 탐색적 자료분석
+   ## 결측치 확인
+     - 'GDLINEHI' 결측치(22건) -> 22건 중 20건은 §924(c)와 career-offender 조항이 함께 적용되어 §4B1.1(c)의 별도 계산경로로 최종 가이드라인 범위가 결정되었기 때문에, 일반Chapter Two의 대표 가이드라인인 GDLINEHI와 일반 범죄수준 계산 개수인 NOCOMP가 기록되지 않았다. 따라서, 별도 계산경로를 사용하였음을 나타내는 'OTHER_CAL'열을 만들어야 한다. 기존의 결측치는 'MISSING'으로 대치한다.
+     - 'NOCOMP' 결측치(22건) -> 'GDLINEHI'의 결측치 패턴과 동일하다. 따라서 위의 'OTHER_CAL'열을 공유한다. 다만, 열이 의미하는 바가 다르므로, 기존 결측치는 median으로 대체해 로지스틱 회귀분석의 성능을 제고한다.
+     - 'STATMAX,'STATMIN' 결측치(126,127건) -> 107건은 18 U.S.C. §13에 따라 연방법이 아닌 주법의 법정형이 적용되어 공개된 연방 데이터만으로 법정형을 확정할 수 없기 때문에 발생하였다. 'GLMIN','GLMAX' 는 위 두 변수가 고려되어 도출된 값이고 결측치가 존재하지 않기 때문에. 이를 기준으로 한 'MIN_TRUMP_STATUS','MAX_TRUMP_STATUS','RANGE_TRUMPED' 열을 생성해 어떤 방향으로 변수를 변경시켰는지 표시한다. 기존의 결측치는 median으로 대체해 로지스틱 회귀분석의 성능을 제고한다. 또한 'STATMAX_MISS','STATMIN_MISS' 열도 추가해 직관성을 확보한다.
+     - 'FINEMAX','FINEMIN' 결측치(2069,2088건) -> SOR에서 직접 코딩되는 변수이고, 사용된 SOR에는 fine range 입력란이 존재한다. 그런데 결측의 98.0%가 벌금 미부과 사건이고 83.9%가 두 사법구에 집중되어 있다. 또한 동일한 양식을 사용한 사건이 대부분이므로 양식 부재로 설명되지 않는다. 이에 따라 해당 결측은 무작위적인 개별 입력 오류보다, 벌금을 부과하지 않은 사건에서 fine range를 생략하는 사법구별 SOR 작성·제출 관행과 관련된 것으로 판단된다. 기존의 결측치는 median으로 대체해 로지스틱 회귀분석의 성능을 제고한다. 또한 'FINEMAX_MISS','FINEMIN_MISS'열을 추가해 결측 여부를 표시한다.
+    ## 'Class' 분포 확인
+      - 클래스 불균형이 극단적으로 심한 경우에 해당하므로, 교차 검증 과정에서 클래스 불균형을 고려하는 sklearn의 StratifiedKFold를 사용한다.
