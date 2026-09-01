@@ -407,7 +407,7 @@ def preprocess(df) :
         0
     )
     X['GLMAX_LIFE'] = (X['GLMAX']==9996).astype('int')
-    X['GLMAX_MONTH'] = X['GLMAX'].mask(
+    X['GLMAX_MONTH'] = X['GLMAX'].4mask(
         X['GLMAX']==9996,
         0
     ) 
@@ -416,5 +416,7 @@ def preprocess(df) :
     X['AMENDYR'] = X['AMENDYR'].astype('Int64').astype('string')
     return X
 ```
+
+
 
 
