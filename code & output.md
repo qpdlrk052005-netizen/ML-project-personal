@@ -107,6 +107,41 @@ print(
 0 0
 ```
 
+# 변수 특성 탐구
+```python
+print(
+    df.info()
+)
+```
+
+# 결과
+```text
+RangeIndex: 61006 entries, 0 to 61005
+Data columns (total 18 columns):
+ #   Column    Non-Null Count  Dtype  
+---  ------    --------------  -----  
+ 0   ZONE      61006 non-null  str    
+ 1   FINEMIN   58918 non-null  float64
+ 2   FINEMAX   58937 non-null  float64
+ 3   NOCOMP    60984 non-null  float64
+ 4   SENTIMP   61006 non-null  int64  
+ 5   SOURCES   61006 non-null  int64  
+ 6   XCRHISSR  61006 non-null  float64
+ 7   XFOLSOR   61006 non-null  float64
+ 8   AMENDYR   61006 non-null  float64
+ 9   GLMIN     61006 non-null  float64
+ 10  GLMAX     61006 non-null  float64
+ 11  STATMAX   60880 non-null  float64
+ 12  STATMIN   60879 non-null  float64
+ 13  TOTPRISN  61006 non-null  int64  
+ 14  XMAXSOR   61006 non-null  float64
+ 15  XMINSOR   61006 non-null  float64
+ 16  GDLINEHI  60984 non-null  str    
+ 17  Class     61006 non-null  int64  
+dtypes: float64(12), int64(4), str(2)
+```
+
+
 # 범주형 변수 분석
 ```python
 print(
