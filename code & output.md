@@ -373,7 +373,48 @@ def Handling_missing(df) :
     return X
 ```
 
-# 특이값 처리 함수
+# 특이값 처리 함수 (희소 범주 그대로)
 ```python
+def preprocess(df) : 
+    X = df.copy()
+    # 특이값 처리
+    X['XMINSOR_LIFE'] = (X['XMINSOR']==9996).astype('int')
+    X['XMINSOR_ZERO'] = (X['XMINSOR']==0).astype('int')
+    X['XMINSOR_MONTH'] = X['XMINSOR'].mask(
+         X['XMINSOR']==9996,
+        0
+    )
+    X['XMAXSOR_LIFE'] = (X['XMAXSOR']==9996).astype('int')
+    X['XMAXSOR_MONTH'] = X['XMAXSOR'].mask(
+        X['XMAXSOR']==9996,
+        0
+    )
+    X['STATMIN_LIFE'] = (X['STATMIN']==9996).astype('int')
+    X['STATMIN_ZERO'] = (X['STATMIN']==0).astype('int')
+    X['STATMIN_MONTH'] = X['STATMIN'].mask(
+         X['STATMIN']==9996,
+        0
+    )
+    X['STATMAX_LIFE'] = (X['STATMAX']==9996).astype('int')
+    X['STATMAX_MONTH'] = X['STATMAX'].mask(
+        X['STATMAX']==9996,
+        0
+    )
+    X['GLMIN_LIFE'] = (X['GLMIN']==9996).astype('int')
+    X['GLMIN_ZERO'] = (X['GLMIN']==0).astype('int')
+    X['GLMIN_MONTH'] = X['GLMIN'].mask(
+         X['GLMIN']==9996,
+        0
+    )
+    X['GLMAX_LIFE'] = (X['GLMAX']==9996).astype('int')
+    X['GLMAX_MONTH'] = X['GLMAX'].mask(
+        X['GLMAX']==9996,
+        0
+    ) 
+    # 수치형 -> 범주형 전환
+    X['XCRHISSR'] = X['XCRHISSR'].astype('Int64').astype('string')
+    X['AMENDYR'] = X['AMENDYR'].astype('Int64').astype('string')
+    return X
+```
 
 
