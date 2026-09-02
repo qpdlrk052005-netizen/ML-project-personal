@@ -510,3 +510,43 @@ RMSE는 극단적으로 긴 자유 제한 기간의 영향을 크게 받으므�
 ```
 이므로, 심각한 클래스 불균형을 가지고 있다. 따라서 sklearn의 StratifiedKFold로 교차검증을 실시해 클래스 불균형의 영향을 최소화한다.
 
+### 1.4 범주형 변수들의 빈도 조사
+'AMENDYR' 의 빈도가 균일하지 않게 나타났다. 'AMENDYR' == 2018.0000 가 전체의 99.68%를 차지하는데 반해, 범주 개수는 19개이다. 따라서 희소범주를 처리한 모델과 그렇지 않은 모델의 민감도 조사를 실시한다.
+'GDLINEHI'은 상위 5개 비율이 80.78%, 상위 10개 비율이 89.30%인 데 반해, 총 범주의 개수는 107개이다. 따라서 희소범주를 처리한 모델과 그렇지 않은 모델의 민감도 조사를 실시한다.
+
+
+## 2.Baseline Full 모델 성능 비교
+
+| 순위 | 모델 | Class weight | Accuracy | CV Macro F1 | 표준편차 | OOF Macro F1 | Macro Recall | MCC | Class 0 F1 | Class 1 F1 | Class 2 F1 | Class 3 F1 |
+|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | Random Forest | None | 0.9448 | **0.4815** | 0.0465 | **0.4906** | 0.4380 | **0.3582** | 0.4432 | 0.9714 | **0.3526** | **0.1951** |
+| 2 | Decision Tree | None | 0.9413 | 0.4734 | 0.0347 | 0.4746 | 0.4511 | 0.3340 | **0.4889** | 0.9696 | 0.3360 | 0.1039 |
+| 3 | Random Forest | balanced | 0.8282 | 0.4279 | 0.0161 | 0.4280 | 0.6657 | 0.3253 | 0.4311 | 0.9041 | 0.3226 | 0.0540 |
+| 4 | Logistic Regression | None | 0.9456 | 0.4271 | **0.0173** | 0.4275 | 0.3790 | 0.3302 | 0.4321 | 0.9719 | 0.3058 | 0.0000 |
+| 5 | Decision Tree | balanced | 0.8309 | 0.4198 | 0.0237 | 0.4193 | 0.5899 | 0.2976 | 0.4156 | 0.9063 | 0.3050 | 0.0502 |
+| 6 | HistGradientBoosting | None | **0.9461** | 0.4121 | 0.0329 | 0.4114 | 0.4034 | 0.3226 | 0.3233 | **0.9723** | 0.2875 | 0.0625 |
+| 7 | HistGradientBoosting | balanced | 0.7928 | 0.4043 | 0.0105 | 0.4038 | **0.7504** | 0.3330 | 0.3780 | 0.8814 | 0.3104 | 0.0454 |
+| 8 | Logistic Regression | balanced | 0.7580 | 0.3702 | 0.0149 | 0.3691 | 0.7493 | 0.2980 | 0.3068 | 0.8602 | 0.2869 | 0.0226 |
+
+> 순위는 주평가지표인 CV Macro F1 평균을 기준으로 정하였다.  
+> 클래스별 F1은 전체 OOF 예측 결과를 기준으로 계산하였다.
+
+### 결과 요약
+
+| 평가 항목 | 최우수 모델 | 결과 |
+|---|---|---:|
+| CV Macro F1 | Random Forest, None | 0.4815 |
+| OOF Macro F1 | Random Forest, None | 0.4906 |
+| MCC | Random Forest, None | 0.3582 |
+| Accuracy | HistGradientBoosting, None | 0.9461 |
+| Macro Recall | HistGradientBoosting, balanced | 0.7504 |
+| Class 0 F1 | Decision Tree, None | 0.4889 |
+| Class 1 F1 | HistGradientBoosting, None | 0.9723 |
+| Class 2 F1 | Random Forest, None | 0.3526 |
+| Class 3 F1 | Random Forest, None | 0.1951 |
+
+### 모델 선택
+
+주평가지표인 Macro F1과 보조지표인 MCC를 함께 고려했을 때, 현재 가장 우수한 모델은 `class_weight=None`인 Random Forest이다. 다만 Random Forest와 Decision Tree의 CV Macro F1 차이는 0.0081에 불과하므로, 두 모델을 우선적으로 튜닝하여 최종 모델을 선택한다. HistGradientBoosting은 비선형 앙상블 대안으로 추가 튜닝한다.
+
+`class_weight='balanced'`는 희소 클래스의 Recall을 높였지만 다수의 오분류를 발생시켜 Macro F1과 MCC를 전반적으로 낮췄다. 따라서 기본 최종 후보에서는 제외하되, 튜닝 과정에서 `None`, `balanced_subsample` 및 제한적인 사용자 정의 가중치를 비교한다.
