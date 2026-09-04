@@ -417,6 +417,107 @@ def preprocess(df) :
     return X
 ```
 
+# 열이름 분리
+```python
+binary_cols = [
+    'OTHER_CAL',
+
+    'STATMIN_MISSING',
+    'STATMAX_MISSING',
+
+    'XMINSOR_LIFE',
+    'XMINSOR_ZERO',
+
+    'XMAXSOR_LIFE',
+
+    'STATMIN_LIFE',
+    'STATMIN_ZERO',
+
+    'STATMAX_LIFE',
+
+    'GLMIN_LIFE',
+    'GLMIN_ZERO',
+
+    'GLMAX_LIFE'
+]
 
 
+categorical_cols = [
+    'AMENDYR',
+    'GDLINEHI',
+    'XCRHISSR',
+    'ZONE',
+
+    'MIN_TRUMP_STATUS',
+    'MAX_TRUMP_STATUS'
+]
+
+
+numeric_cols = [
+    'XFOLSOR',
+    'NOCOMP',
+
+    'XMINSOR_MONTH',
+    'XMAXSOR_MONTH',
+
+    'STATMIN_MONTH',
+    'STATMAX_MONTH',
+
+    'GLMIN_MONTH',
+    'GLMAX_MONTH',
+
+    'FINEMIN',
+    'FINEMAX'
+]
+
+model_cols = (
+    binary_cols
+    + categorical_cols
+    + numeric_cols
+)
+```
+
+# 파이프라인
+```python
+numeric_transformer = Pipeline([
+    (
+        'imputer',
+        SimpleImputer(
+            strategy='median'
+        )
+    ),
+    (
+        'scaler',
+        StandardScaler()
+    )
+])
+
+preprocessor_full = ColumnTransformer(
+    transformers=[
+        (
+            'binary',
+            'passthrough',
+            binary_cols
+        ),
+        (
+            'categorical',
+            OneHotEncoder(
+                handle_unknown='ignore',
+                sparse_output=False
+            ),
+            categorical_cols
+        ),
+        (
+            'numeric',
+            numeric_transformer,
+            numeric_cols
+        )
+    ]
+    remainder='drop',
+    sparse_threshold=0
+)
+```
+
+# 더미 모델
+```python
 
